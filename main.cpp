@@ -2,5 +2,6 @@
 
 int main()
 {
-    
+    Board a;
+    a.Show();
 }
