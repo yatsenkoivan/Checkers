@@ -14,6 +14,7 @@ class Board {
 		static int cell_size_y;
 		static int offset_y;
 		static int offset_x;
+		static char cursor_symbol;
 
 		Piece*** arr;
 		int player;
@@ -76,8 +77,17 @@ class Board {
 		{
 			return false;
 		}
+		void HideCursor()
+		{
+			ShowCell(cursor_y, cursor_x, false);
+		}
+		void ShowCursor()
+		{
+			ShowCell(cursor_y, cursor_x);
+		}
 		void Press(char key)
 		{
+			HideCursor();
 			switch (key)
 			{
 				//RESHOW
@@ -88,24 +98,29 @@ class Board {
 				//CURSOR-LEFT
 				case 'a':
 				case 'A':
+					if (cursor_x - 1 >= 0) cursor_x--;
 					break;
 				//CURSOR-RIGHT
 				case 'd':
 				case 'D':
+					if (cursor_x + 1 <= size_x-1) cursor_x++;
 					break;
 				//CURSOR-UP
 				case 'w':
 				case 'W':
+					if (cursor_y - 1 >= 0) cursor_y--;
 					break;
 				//CURSOR-DOWN
 				case 's':
 				case 'S':
+					if (cursor_y + 1 <= size_y-1) cursor_y++;
 					break;
 				//MAKE-A-MOVE
 				case 'f':
 				case 'F':
 					break;
 			}
+			ShowCursor();
 		}
 		void Start()
 		{
@@ -139,8 +154,14 @@ class Board {
 			std::cout << "Player " << player << ":";
 			Cursor::set(0, size_y*cell_size_y+offset_y-1);
 		}
-		void ShowCell(int row, int col)
+		void ShowCell(int row, int col, bool ShowCursor = true)
 		{
+			bool IsCursor = false;
+
+			if ((ShowCursor && row == cursor_y && col == cursor_x)
+				||
+				(row == start_cursor_y && col == start_cursor_x)) IsCursor = true;
+
 			Colors fg, bg;
 			if (row % 2 == col % 2) bg = Colors::white;
 			else bg = Colors::black;
@@ -148,17 +169,22 @@ class Board {
 			if (arr[row][col] && arr[row][col]->side == Piece::Sides::white) fg = Colors::lwhite;
 			else fg = Colors::lblack;
 
-
 			SetColor(fg, bg);
+
+			if (IsCursor)
+				SetColor(Colors::cursor, bg);
+
 
 			for (int i = 0; i < cell_size_y; i++)
 			{
 				Cursor::set(col * cell_size_x + offset_x, row*cell_size_y + i + offset_y);
 				for (int j = 0; j < cell_size_x; j++)
 				{
-					std::cout << ' ';
+					if (IsCursor) std::cout << cursor_symbol;
+					else std::cout << ' ';
 				}
 			}
+			SetColor(fg, bg);
 			Cursor::set(col * cell_size_x + cell_size_x / 2 + offset_x, row * cell_size_y + cell_size_y / 2 + offset_y);
 			if (arr[row][col]) std::cout << *arr[row][col];
 			SetColor();
@@ -183,3 +209,4 @@ int Board::cell_size_x = 5;
 int Board::cell_size_y = 3;
 int Board::offset_x = 0;
 int Board::offset_y = 2;
+char Board::cursor_symbol = '#';
