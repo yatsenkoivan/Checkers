@@ -161,13 +161,12 @@ class Board {
 					if (can_take)
 					{
 						SearchTakeMoves();
-						//CANNOT TAKE ANYMORE
-						if (can_take == false)
-						{
-							player = (player == 1 ? 2 : 1);
-							ShowPlayer();
-							SearchTakeMoves();
-						}
+					}
+					if (can_take == false)
+					{
+						player = (player == 1 ? 2 : 1);
+						ShowPlayer();
+						SearchTakeMoves();
 					}
 				}	
 			}
