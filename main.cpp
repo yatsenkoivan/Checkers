@@ -2,6 +2,6 @@
 
 int main()
 {
-    Board a;
-    a.Show();
+    Board b;
+    b.Start();
 }
