@@ -156,10 +156,19 @@ class Board {
 					ShowCell(cursor_y, cursor_x);
 
 					CancelMove();
-					player = (player == 1 ? 2 : 1);
-					ShowPlayer();
 
-					SearchTakeMoves();
+					//TOOK ENEMY PIECE
+					if (can_take)
+					{
+						SearchTakeMoves();
+						//CANNOT TAKE ANYMORE
+						if (can_take == false)
+						{
+							player = (player == 1 ? 2 : 1);
+							ShowPlayer();
+							SearchTakeMoves();
+						}
+					}
 				}	
 			}
 		}
