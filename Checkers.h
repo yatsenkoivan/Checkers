@@ -124,6 +124,12 @@ class Board {
 				//CORRECT MOVE
 				if (move_variants.find(std::pair<int, int>(cursor_x, cursor_y)) != move_variants.end())
 				{
+					//jump over enemy piece
+					if (abs(cursor_x - start_cursor_x) == 2 && abs(cursor_y - start_cursor_y) == 2)
+					{
+						arr[(cursor_y + start_cursor_y) / 2][(cursor_x + start_cursor_x) / 2] = nullptr;
+						ShowCell((cursor_y + start_cursor_y) / 2, (cursor_x + start_cursor_x) / 2);
+					}
 					arr[cursor_y][cursor_x] = arr[start_cursor_y][start_cursor_x];
 					arr[start_cursor_y][start_cursor_x] = nullptr;
 					ShowCell(cursor_y, cursor_x);
@@ -163,6 +169,13 @@ class Board {
 				if (x - 1 >= 0 && y - 1 >= 0 && arr[y-1][x-1] == nullptr) move_variants.insert(std::pair<int, int>(x - 1, y - 1));
 				//up 1 . right 1 (empty)
 				if (x + 1 <= size_x-1 && y - 1 >= 0 && arr[y-1][x+1] == nullptr) move_variants.insert(std::pair<int, int>(x + 1, y - 1));
+				
+				//up 2 . left 2 (take enemy piece)
+				if (x - 2 >= 0 && y - 2 >= 0 && arr[y-2][x-2] == nullptr && arr[y-1][x-1] && arr[y-1][x-1]->side != arr[y][x]->side)
+					move_variants.insert(std::pair<int, int>(x - 2, y - 2));
+				//up 2 . right 2 (take enemy piece)
+				if (x + 2 <= size_x-1 && y - 2 >= 0 && arr[y - 2][x + 2] == nullptr && arr[y - 1][x + 1] && arr[y - 1][x + 1]->side != arr[y][x]->side)
+					move_variants.insert(std::pair<int, int>(x + 2, y - 2));
 			}
 
 			//black (or king)
@@ -170,10 +183,16 @@ class Board {
 			{
 				//down 1 . left 1 (empty)
 				if (x - 1 >= 0 && y + 1 <= size_y-1 && arr[y + 1][x - 1] == nullptr) move_variants.insert(std::pair<int, int>(x - 1, y + 1));
-				//up 1 . right 1 (empty)
+				//down 1 . right 1 (empty)
 				if (x + 1 <= size_x - 1 && y + 1 <= size_y-1 && arr[y + 1][x + 1] == nullptr) move_variants.insert(std::pair<int, int>(x + 1, y + 1));
+				
+				//down 2 . left 2 (take enemy piece)
+				if (x - 2 >= 0 && y + 2 <= size_y-1 && arr[y + 2][x - 2] == nullptr && arr[y + 1][x - 1] && arr[y + 1][x - 1]->side != arr[y][x]->side)
+					move_variants.insert(std::pair<int, int>(x - 2, y + 2));
+				//down 2 . right 2 (take enemy piece)
+				if (x + 2 <= size_x - 1 && y + 2 <= size_y-1 && arr[y + 2][x + 2] == nullptr && arr[y + 1][x + 1] && arr[y + 1][x + 1]->side != arr[y][x]->side)
+					move_variants.insert(std::pair<int, int>(x + 2, y + 2));
 			}
-
 		}
 		void Press(char key)
 		{
