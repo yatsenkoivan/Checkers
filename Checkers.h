@@ -26,6 +26,9 @@ class Board {
 		int cursor_y;
 
 		std::set<std::pair<int, int>> move_variants;
+		std::set<std::pair<int, int>> take_variants;
+
+		bool can_take;
 
 	public:
 		Board()
@@ -41,6 +44,7 @@ class Board {
 			cursor_y = size_y - 1;
 			start_cursor_x = -1;
 			start_cursor_y = -1;
+			can_take = false;
 		}
 		~Board()
 		{
@@ -71,6 +75,7 @@ class Board {
 					}
 				}
 			}
+			SearchTakeMoves();
 		}
 		void GameEnd()
 		{
@@ -99,6 +104,14 @@ class Board {
 			ShowCell(y, x);
 			DelMoveVariants();
 		}
+		void Transform(int x, int y)
+		{
+			if ((x >= 0 && x <= size_x) == false) return;
+			if ((y >= 0 && y <= size_y) == false) return;
+			if (arr[y][x] == nullptr) return;
+
+			arr[y][x]->type = Piece::Types::king;
+		}
 		void MakeAMove()
 		{
 			//START CELL
@@ -115,6 +128,7 @@ class Board {
 				start_cursor_x = cursor_x;
 				start_cursor_y = cursor_y;
 				SetMoveVariants(cursor_x, cursor_y);
+				SetTakeVariants(cursor_x, cursor_y);
 				ShowMoveVariants();
 			}
 
@@ -122,7 +136,9 @@ class Board {
 			else
 			{
 				//CORRECT MOVE
-				if (move_variants.find(std::pair<int, int>(cursor_x, cursor_y)) != move_variants.end())
+				if ((move_variants.find(std::pair<int, int>(cursor_x, cursor_y)) != move_variants.end() && can_take == false)
+					||
+					(take_variants.find(std::pair<int, int>(cursor_x, cursor_y)) != take_variants.end()))
 				{
 					//jump over enemy piece
 					if (abs(cursor_x - start_cursor_x) == 2 && abs(cursor_y - start_cursor_y) == 2)
@@ -132,11 +148,19 @@ class Board {
 					}
 					arr[cursor_y][cursor_x] = arr[start_cursor_y][start_cursor_x];
 					arr[start_cursor_y][start_cursor_x] = nullptr;
+
+					//TRANSFORM
+					if (arr[cursor_y][cursor_x] && arr[cursor_y][cursor_x]->side == Piece::Sides::white && cursor_y == 0) Transform(cursor_x, cursor_y);
+					if (arr[cursor_y][cursor_x] && arr[cursor_y][cursor_x]->side == Piece::Sides::black && cursor_y == size_y - 1) Transform(cursor_x, cursor_y);
+
 					ShowCell(cursor_y, cursor_x);
+
 					CancelMove();
 					player = (player == 1 ? 2 : 1);
 					ShowPlayer();
-				}
+
+					SearchTakeMoves();
+				}	
 			}
 		}
 		void ShowMoveVariants()
@@ -145,14 +169,53 @@ class Board {
 			{
 				ShowCell(coords.second, coords.first);
 			}
+			for (std::pair<int, int> coords : take_variants)
+			{
+				ShowCell(coords.second, coords.first);
+			}
 		}
 		void DelMoveVariants()
 		{
-			std::set<std::pair<int, int>> move_variants_copy = move_variants;
+			std::set<std::pair<int, int>> variants_copy = move_variants;
 			move_variants.clear();
-			for (std::pair<int, int> coords : move_variants_copy)
+			for (std::pair<int, int> coords : variants_copy)
 			{
 				ShowCell(coords.second, coords.first);
+			}
+			variants_copy = take_variants;
+			take_variants.clear();
+			for (std::pair<int, int> coords : variants_copy)
+			{
+				ShowCell(coords.second, coords.first);
+			}
+		}
+		void SetTakeVariants(int x, int y)
+		{
+			take_variants.clear();
+			if ((x >= 0 || x <= size_x - 1) == false) return;
+			if ((y >= 0 || y <= size_y - 1) == false) return;
+			if (arr[y][x] == nullptr) return;
+
+			//white (or king)
+			if (arr[y][x]->side == Piece::Sides::white || arr[y][x]->type == Piece::Types::king)
+			{
+				//up 2 . left 2 (take enemy piece)
+				if (x - 2 >= 0 && y - 2 >= 0 && arr[y - 2][x - 2] == nullptr && arr[y - 1][x - 1] && arr[y - 1][x - 1]->side != arr[y][x]->side)
+					take_variants.insert(std::pair<int, int>(x - 2, y - 2));
+				//up 2 . right 2 (take enemy piece)
+				if (x + 2 <= size_x - 1 && y - 2 >= 0 && arr[y - 2][x + 2] == nullptr && arr[y - 1][x + 1] && arr[y - 1][x + 1]->side != arr[y][x]->side)
+					take_variants.insert(std::pair<int, int>(x + 2, y - 2));
+			}
+
+			//black (or king)
+			if (arr[y][x]->side == Piece::Sides::black || arr[y][x]->type == Piece::Types::king)
+			{
+				//down 2 . left 2 (take enemy piece)
+				if (x - 2 >= 0 && y + 2 <= size_y - 1 && arr[y + 2][x - 2] == nullptr && arr[y + 1][x - 1] && arr[y + 1][x - 1]->side != arr[y][x]->side)
+					take_variants.insert(std::pair<int, int>(x - 2, y + 2));
+				//down 2 . right 2 (take enemy piece)
+				if (x + 2 <= size_x - 1 && y + 2 <= size_y - 1 && arr[y + 2][x + 2] == nullptr && arr[y + 1][x + 1] && arr[y + 1][x + 1]->side != arr[y][x]->side)
+					take_variants.insert(std::pair<int, int>(x + 2, y + 2));
 			}
 		}
 		void SetMoveVariants(int x, int y)
@@ -169,13 +232,6 @@ class Board {
 				if (x - 1 >= 0 && y - 1 >= 0 && arr[y-1][x-1] == nullptr) move_variants.insert(std::pair<int, int>(x - 1, y - 1));
 				//up 1 . right 1 (empty)
 				if (x + 1 <= size_x-1 && y - 1 >= 0 && arr[y-1][x+1] == nullptr) move_variants.insert(std::pair<int, int>(x + 1, y - 1));
-				
-				//up 2 . left 2 (take enemy piece)
-				if (x - 2 >= 0 && y - 2 >= 0 && arr[y-2][x-2] == nullptr && arr[y-1][x-1] && arr[y-1][x-1]->side != arr[y][x]->side)
-					move_variants.insert(std::pair<int, int>(x - 2, y - 2));
-				//up 2 . right 2 (take enemy piece)
-				if (x + 2 <= size_x-1 && y - 2 >= 0 && arr[y - 2][x + 2] == nullptr && arr[y - 1][x + 1] && arr[y - 1][x + 1]->side != arr[y][x]->side)
-					move_variants.insert(std::pair<int, int>(x + 2, y - 2));
 			}
 
 			//black (or king)
@@ -185,13 +241,28 @@ class Board {
 				if (x - 1 >= 0 && y + 1 <= size_y-1 && arr[y + 1][x - 1] == nullptr) move_variants.insert(std::pair<int, int>(x - 1, y + 1));
 				//down 1 . right 1 (empty)
 				if (x + 1 <= size_x - 1 && y + 1 <= size_y-1 && arr[y + 1][x + 1] == nullptr) move_variants.insert(std::pair<int, int>(x + 1, y + 1));
-				
-				//down 2 . left 2 (take enemy piece)
-				if (x - 2 >= 0 && y + 2 <= size_y-1 && arr[y + 2][x - 2] == nullptr && arr[y + 1][x - 1] && arr[y + 1][x - 1]->side != arr[y][x]->side)
-					move_variants.insert(std::pair<int, int>(x - 2, y + 2));
-				//down 2 . right 2 (take enemy piece)
-				if (x + 2 <= size_x - 1 && y + 2 <= size_y-1 && arr[y + 2][x + 2] == nullptr && arr[y + 1][x + 1] && arr[y + 1][x + 1]->side != arr[y][x]->side)
-					move_variants.insert(std::pair<int, int>(x + 2, y + 2));
+			}
+		}
+		void SearchTakeMoves()
+		{
+			can_take = false;
+			for (int row = 0; row < size_y && can_take == false; row++)
+			{
+				for (int col = 0; col < size_x && can_take == false; col++)
+				{
+					if (arr[row][col] == nullptr) continue;
+					if ((arr[row][col]->side == Piece::Sides::white && player == 1)
+						||
+						(arr[row][col]->side == Piece::Sides::black && player == 2))
+					{
+						SetTakeVariants(col, row);
+						if (take_variants.empty() == false)
+						{
+							can_take = true;
+						}
+						take_variants.clear();
+					}
+				}
 			}
 		}
 		void Press(char key)
@@ -273,6 +344,7 @@ class Board {
 		{
 			bool IsCursor = false;
 			bool IsVariant = false;
+			bool IsTakeVariant = false;
 
 			if ((ShowCursor && row == cursor_y && col == cursor_x)
 				||
@@ -281,6 +353,9 @@ class Board {
 			//IS VARIANT
 			if (move_variants.find(std::pair<int, int>(col, row)) != move_variants.end())
 				IsVariant = true;
+			//IS TAKE VARIANT
+			if (take_variants.find(std::pair<int, int>(col, row)) != take_variants.end())
+				IsTakeVariant = true;
 
 			Colors fg, bg;
 			if (row % 2 == col % 2) bg = Colors::white;
@@ -295,6 +370,11 @@ class Board {
 				SetColor(Colors::cursor, bg);
 
 			if (IsVariant)
+			{
+				if (can_take == false) SetColor(Colors::variant_fg, Colors::variant_bg);
+				else SetColor(Colors::limited_variant_fg, Colors::limited_variant_bg);
+			}
+			if (IsTakeVariant)
 				SetColor(Colors::variant_fg, Colors::variant_bg);
 
 			for (int i = 0; i < cell_size_y; i++)

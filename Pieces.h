@@ -3,7 +3,7 @@
 
 struct Piece {
 	enum Types {
-		man = 'O', king = '0'
+		man = 'O', king = '@'
 	};
 	enum Sides {
 		white, black
