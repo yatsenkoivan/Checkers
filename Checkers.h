@@ -79,11 +79,32 @@ class Board {
 		}
 		void GameEnd()
 		{
-
+			Cursor::set(offset_x, 0);
+			std::cout << "Player " << (player == 1 ? 2 : 1) << " won!";
+			Cursor::set(0, cell_size_y * size_y + offset_y - 1);
+			system("pause");
+			exit(0);
 		}
-		bool GameEndCheck()
+		bool GameContinueCheck()
 		{
-			return false;
+			bool can_move = false;
+			for (int row = 0; row < size_y && can_move == false; row++)
+			{
+				for (int col = 0; col < size_x && can_move == false; col++)
+				{
+					if (arr[row][col] == nullptr) continue;
+					if ((player == 1 && arr[row][col]->side == Piece::Sides::white)
+						||
+						(player == 2 && arr[row][col]->side == Piece::Sides::black))
+					{
+						SetMoveVariants(col, row);
+						if (move_variants.empty() == false)
+							can_move = true;
+						move_variants.clear();
+					}
+				}
+			}
+			return can_move;
 		}
 		void HideCursor()
 		{
@@ -168,6 +189,8 @@ class Board {
 						ShowPlayer();
 						SearchTakeMoves();
 					}
+					
+					if (GameContinueCheck() == false) GameEnd();
 				}	
 			}
 		}
@@ -320,11 +343,10 @@ class Board {
 		{
 			Show();
 			char key;
-			do {
+			while (true) {
 				key = _getch();
 				Press(key);
-			} while (GameEndCheck() == false);
-			GameEnd();
+			}
 		}
 		void ShowControls()
 		{
